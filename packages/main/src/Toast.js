@@ -61,6 +61,14 @@ const metadata = {
 		open: {
 			type: Boolean,
 		},
+
+		/**
+		 * @type {boolean}
+		 * @private
+		 */
+		_transition: {
+			type: Boolean,
+		},
 	},
 	slots: /** @lends sap.ui.webcomponents.main.Toast.prototype */ {
 		/**
@@ -134,7 +142,7 @@ class Toast extends UI5Element {
 	onAfterRendering() {
 		if (this._reopen) {
 			requestAnimationFrame(_ => {
-				this.open = true;
+				this._open();
 				this._reopen = false;
 			});
 		}
@@ -145,16 +153,29 @@ class Toast extends UI5Element {
 	 * @public
 	 */
 	show() {
-		if (this.open) {
-			// If the Toast is already opened, we set the _reopen flag to true, in
-			// order to trigger re-rendering after an animation frame
-			// in the onAfterRendering hook.
-			// This is needed for properly resetting the opacity transition.
+		if (this._isOpen()) {
 			this._reopen = true;
-			this.open = false;
+			this._close();
 		} else {
-			this.open = true;
+			this._open();
 		}
+	}
+
+	_close() {
+		this.open = false;
+		this._transition = false;
+	}
+
+	_open () {
+		this.open = true;
+
+		setTimeout(() => {
+			this._transition = true;
+		});
+	}
+
+	_isOpen() {
+		return this.open;
 	}
 
 	get rtl() {
@@ -165,17 +186,17 @@ class Toast extends UI5Element {
 		return {
 			root: {
 				// The transition should be a third of the duration
-				"transition-duration": this.open ? `${this.duration / 3}ms` : "",
+				"transition-duration": this._transition ? `${this.duration / 3}ms` : "",
 				// The delay should be two thirds of the duration
-				"transition-delay": this.open ? `${(this.duration * 2) / 3}ms` : "",
+				"transition-delay": this._transition ? `${(this.duration * 2) / 3}ms` : "",
 				// We alter the opacity property, in order to trigger transition
-				"opacity": this.open ? "0" : "",
+				"opacity": this._transition ? "0" : "",
 			},
 		};
 	}
 
 	_ontransitionend() {
-		this.open = false;
+		this._close();
 	}
 }
 
